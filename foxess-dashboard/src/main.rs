@@ -1,79 +1,42 @@
-use md5::{Digest, Md5};
-use reqwest::Client;
-use serde_json::json;
-use std::env;
-use std::time::{SystemTime, UNIX_EPOCH};
+mod dashboard;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenvy::dotenv()?;
+use dashboard::{DashboardApp, EnergySnapshot};
 
-    let api_key = env::var("FOXESS_API_KEY")?;
-    let inverter_serial = env::var("FOXESS_INVERTER_SERIAL")?;
+fn main() -> Result<(), eframe::Error> {
+    let current = EnergySnapshot {
+        timestamp: "Sample data".to_string(),
+        solar_kw: 4.2,
+        home_kw: 1.3,
+        battery_soc: 78.0,
+        battery_kw: -1.4,
+        grid_import_kw: 0.0,
+        grid_export_kw: 2.9,
+    };
 
-    let path = "/op/v1/device/real/query";
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)?
-        .as_millis()
-        .to_string();
+    let history = vec![
+        current.clone(),
+        EnergySnapshot {
+            solar_kw: 3.8,
+            home_kw: 1.6,
+            ..current.clone()
+        },
+        EnergySnapshot {
+            solar_kw: 5.1,
+            home_kw: 1.4,
+            ..current.clone()
+        },
+        EnergySnapshot {
+            solar_kw: 4.6,
+            home_kw: 1.8,
+            ..current.clone()
+        },
+    ];
 
-    let signature_input = format!("{path}\r\n{api_key}\r\n{timestamp}");
-    let mut hasher = Md5::new();
-    hasher.update(signature_input.as_bytes());
-    let digest = hasher.finalize();
+    let options = eframe::NativeOptions::default();
 
-    let signature = digest
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-
-    let body = json!({
-    "sns": [inverter_serial]
-    });
-
-    let response = Client::new()
-        .post(format!("https://www.foxesscloud.com{path}"))
-        .header("token", &api_key)
-        .header("timestamp", &timestamp)
-        .header("signature", signature)
-        .header("lang", "en")
-        .header("Content-Type", "application/json")
-        .header("User-Agent", "foxess-dashboard/0.1")
-        .header("Timezone", "Australia/Sydney")
-        .json(&body)
-        .send()
-        .await?;
-
-    //println!("HTTP status: {}", response.status());
-
-    let text = response.text().await?;
-
-    let payload: serde_json::Value = serde_json::from_str(&text)?;
-
-    if let Some(result) = payload["result"].as_array() {
-        for device in result {
-            println!("\nTimestamp: {}", device["time"]);
-
-            if let Some(datas) = device["datas"].as_array() {
-                println!("{:<30} {:>12}  {}", "Variable", "Value", "Unit");
-                println!("{}", "-".repeat(58));
-
-                for item in datas {
-                    let variable = item["variable"].as_str().unwrap_or("unknown");
-                    let value = item["value"]
-                        .to_string()
-                        .trim_matches('"')
-                        .to_string();
-                    let unit = item["unit"].as_str().unwrap_or("");
-
-                    println!("{:<30} {:>12}  {}", variable, value, unit);
-                }
-            }
-        }
-    } else {
-        println!("No telemetry result found.");
-        println!("{text}");
-    }
-
-    Ok(())
+    eframe::run_native(
+        "FoxESS Dashboard",
+        options,
+        Box::new(|_cc| Ok(Box::new(DashboardApp { current, history }))),
+    )
 }
