@@ -4,6 +4,7 @@ use egui_plot::{Line, Plot, PlotPoints};
 #[derive(Clone, Debug)]
 pub struct EnergySnapshot {
     pub timestamp: String,
+    pub timestamp_seconds: f64,
     pub solar_kw: f64,
     pub home_kw: f64,
     pub battery_soc: f64,
@@ -38,29 +39,25 @@ impl eframe::App for DashboardApp {
         let solar_points = PlotPoints::from_iter(
             self.history
                 .iter()
-                .enumerate()
-                .map(|(i, snapshot)| [i as f64, snapshot.solar_kw]),
+                .map(|snapshot| [snapshot.timestamp_seconds, snapshot.solar_kw]),
         );
 
         let home_points = PlotPoints::from_iter(
             self.history
                 .iter()
-                .enumerate()
-                .map(|(i, snapshot)| [i as f64, snapshot.home_kw]),
+                .map(|snapshot| [snapshot.timestamp_seconds, snapshot.home_kw]),
         );
 
         let battery_points = PlotPoints::from_iter(
             self.history
                 .iter()
-                .enumerate()
-                .map(|(i, snapshot)| [i as f64, snapshot.battery_kw]),
+                .map(|snapshot| [snapshot.timestamp_seconds, snapshot.battery_kw]),
         );
 
         let grid_import_points = PlotPoints::from_iter(
             self.history
                 .iter()
-                .enumerate()
-                .map(|(i, snapshot)| [i as f64, snapshot.grid_import_kw]),
+                .map(|snapshot| [snapshot.timestamp_seconds, snapshot.grid_import_kw]),
         );
 
         Plot::new("power-history")
