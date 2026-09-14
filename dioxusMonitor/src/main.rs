@@ -30,7 +30,7 @@ fn app() -> Element {
 
     use_future(move || async move {
         loop {
-            match Request::get("http://127.0.0.1:3000/api/current")
+            match Request::get("/api/current")
                 .send()
                 .await
             {
