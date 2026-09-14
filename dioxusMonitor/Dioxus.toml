@@ -1,0 +1,7 @@
+[application]
+name = "dioxus-monitor"
+asset_dir = "assets"
+
+[web.app]
+title = "Home Energy"
+base_path = "energy"

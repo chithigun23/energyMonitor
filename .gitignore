@@ -1,0 +1,11 @@
+foxess-dashboard.code-workspace
+
+# Rust and Dioxus build output
+**/target/
+
+# Secrets: never commit real FoxESS credentials
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
