@@ -1,12 +1,14 @@
 # Build a small Linux binary suitable for a TrueNAS SCALE container.
-FROM rust:1.85-slim-bookworm AS builder
+FROM rust:1.98-slim-bookworm AS builder
 
 WORKDIR /app
 
-# Build dependencies are cached until Cargo.toml or Cargo.lock changes.
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && printf 'fn main() {}\n' > src/main.rs && cargo build --release --locked
+# Some Rust TLS dependencies compile small native libraries on Linux.
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y build-essential cmake perl pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
+COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 RUN cargo build --release --locked
 
