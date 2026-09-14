@@ -30,7 +30,9 @@ fn app() -> Element {
 
     use_future(move || async move {
         loop {
-            match Request::get("/api/current")
+            // The static site and backend are separate TrueNAS Custom Apps.
+            // Keep this LAN address stable with a DHCP reservation on your router.
+            match Request::get("http://192.168.20.4:13000/api/current")
                 .send()
                 .await
             {
