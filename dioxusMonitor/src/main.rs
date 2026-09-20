@@ -55,9 +55,9 @@ fn app() -> Element {
     let page = match snapshot() {
         Some(data) => {
             let grid_value = if data.grid_export_kw > 0.05 {
-                format!("{:.2} kW out", data.grid_export_kw)
+                format_power(data.grid_export_kw, "out")
             } else {
-                format!("{:.2} kW in", data.grid_import_kw)
+                format_power(data.grid_import_kw, "in")
             };
             let battery_state = if data.battery_kw > 0.05 {
                 "Charging"
@@ -89,8 +89,8 @@ fn app() -> Element {
 
             let advice = if data.grid_export_kw > 0.5 {
                 let message = format!(
-                    "{:.2} kW of spare generation is going to the grid.",
-                    data.grid_export_kw
+                    "{} of spare generation is going to the grid.",
+                    format_power(data.grid_export_kw, "")
                 );
                 rsx! {
                     section { class: "advice advice-use",
@@ -111,8 +111,8 @@ fn app() -> Element {
                 }
             } else if data.grid_import_kw > 0.5 {
                 let message = format!(
-                    "The home is drawing {:.2} kW from the grid.",
-                    data.grid_import_kw
+                    "The home is drawing {} from the grid.",
+                    format_power(data.grid_import_kw, "")
                 );
                 rsx! {
                     section { class: "advice advice-reduce",
@@ -152,13 +152,13 @@ fn app() -> Element {
                         section { class: "flow-node flow-home",
                             img { src: HOME_IMAGE, alt: "House" }
                             p { "Home" }
-                            strong { "{data.home_kw:.2} kW" }
+                            strong { "{format_power(data.home_kw, \"\")}" }
                             small { "Using now" }
                         }
                         section { class: "flow-node flow-solar",
                             img { src: SOLAR_IMAGE, alt: "Solar panels" }
                             p { "Total generation" }
-                            strong { "{data.solar_kw:.2} kW" }
+                            strong { "{format_power(data.solar_kw, \"\")}" }
                             small { "Solar available" }
                         }
                         div { class: "hub", "⚡" }
@@ -182,8 +182,8 @@ fn app() -> Element {
                     p { class: "flow-key", "Pulsing arrows show active power flow. Faster pulses mean more measured power." }
                 }
                 section { class: "metrics",
-                    article { p { "Generation" } h2 { "{data.solar_kw:.2} kW" } small { "Panels + inverter" } }
-                    article { p { "Home use" } h2 { "{data.home_kw:.2} kW" } small { "Using now" } }
+                    article { p { "Generation" } h2 { "{format_power(data.solar_kw, \"\")}" } small { "Panels + inverter" } }
+                    article { p { "Home use" } h2 { "{format_power(data.home_kw, \"\")}" } small { "Using now" } }
                     article { p { "Battery" } h2 { "{data.battery_soc:.0}%" } small { "Stored energy" } }
                     article { p { "Grid" } h2 { "{grid_value}" } small { "Grid flow" } }
                 }
@@ -225,6 +225,20 @@ fn app() -> Element {
             h1 { class: "page-title", "☀ Home Energy Hub" }
             {page}
         }
+    }
+}
+
+fn format_power(power_kw: f64, direction: &str) -> String {
+    let value = if power_kw.abs() < 1.0 {
+        format!("{:.0} W", power_kw * 1000.0)
+    } else {
+        format!("{power_kw:.2} kW")
+    };
+
+    if direction.is_empty() {
+        value
+    } else {
+        format!("{value} {direction}")
     }
 }
 
