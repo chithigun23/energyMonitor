@@ -71,28 +71,20 @@ fn app() -> Element {
             } else {
                 "Importing"
             };
-            let solar_route_class = route_class(data.solar_kw, "route-solar");
-            let home_route_class = route_class(data.home_kw, "route-home");
+            let solar_flow_class = flow_path_class(data.solar_kw, "solar-flow");
+            let home_flow_class = flow_path_class(data.home_kw, "home-flow");
             let grid_power = data.grid_import_kw.max(data.grid_export_kw);
-            let grid_route_class = if data.grid_export_kw > 0.05 {
-                route_class(grid_power, "route-grid-out")
+            let grid_flow_class = if data.grid_export_kw > 0.05 {
+                flow_path_class(grid_power, "grid-export-flow")
             } else {
-                route_class(grid_power, "route-grid-in")
+                flow_path_class(grid_power, "grid-import-flow")
             };
-            let battery_route_class = route_class(data.battery_kw.abs(), "route-battery");
-            let grid_arrow = if data.grid_export_kw > 0.05 {
-                "↙"
-            } else if data.grid_import_kw > 0.05 {
-                "↗"
-            } else {
-                "↗↙"
-            };
-            let battery_arrow = if data.battery_kw > 0.05 {
-                "↘"
+            let battery_flow_class = if data.battery_kw > 0.05 {
+                flow_path_class(data.battery_kw, "battery-charge-flow")
             } else if data.battery_kw < -0.05 {
-                "↖"
+                flow_path_class(data.battery_kw.abs(), "battery-discharge-flow")
             } else {
-                "↖↘"
+                flow_path_class(0.0, "battery-charge-flow")
             };
 
             let advice = if data.grid_export_kw > 0.5 {
@@ -149,23 +141,27 @@ fn app() -> Element {
                         p { "Live system snapshot" }
                     }
                     div { class: "flow-grid",
-                        section { class: "flow-node flow-solar",
-                            img { src: SOLAR_IMAGE, alt: "Solar panels" }
-                            p { "Total generation" }
-                            strong { "{data.solar_kw:.2} kW" }
-                            small { "Solar available" }
-                        }
-                        p { class: "{solar_route_class}", "↙" }
-                        p { class: "{grid_route_class}", "{grid_arrow}" }
-                        p { class: "{home_route_class}", "↖" }
-                        p { class: "{battery_route_class}", "{battery_arrow}" }
-                        div { class: "hub", "⚡" }
+                        div { class: "flow-line flow-base solar-base" }
+                        div { class: "flow-line flow-base home-base" }
+                        div { class: "flow-line flow-base grid-base" }
+                        div { class: "flow-line flow-base battery-base" }
+                        div { class: "{solar_flow_class}" }
+                        div { class: "{home_flow_class}" }
+                        div { class: "{grid_flow_class}" }
+                        div { class: "{battery_flow_class}" }
                         section { class: "flow-node flow-home",
                             img { src: HOME_IMAGE, alt: "House" }
                             p { "Home" }
                             strong { "{data.home_kw:.2} kW" }
                             small { "Using now" }
                         }
+                        section { class: "flow-node flow-solar",
+                            img { src: SOLAR_IMAGE, alt: "Solar panels" }
+                            p { "Total generation" }
+                            strong { "{data.solar_kw:.2} kW" }
+                            small { "Solar available" }
+                        }
+                        div { class: "hub", "⚡" }
                         section { class: if data.grid_export_kw > 0.05 { "flow-node flow-grid-node flow-grid-out" } else { "flow-node flow-grid-node flow-grid-in" },
                             img { src: GRID_IMAGE, alt: "Electricity grid" }
                             p { "Grid" }
@@ -217,10 +213,9 @@ fn app() -> Element {
                 .advice-avoid {{ background: #ffefed; border-color: #c4543a; }} .advice-avoid .advice-kicker {{ color: #c4543a; }}
                 .flow-panel {{ padding: 1.25rem; border: 1px solid #dce4ef; border-radius: 24px; background: linear-gradient(145deg, #f9fbff, #eef4fb); }}
                 .panel-heading, .battery-label {{ display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }} .panel-heading h2 {{ margin: 0; }} .panel-heading p {{ margin: 0; }}
-                .flow-grid {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: 'home route1 solar' 'route2 hub route3' 'grid route4 battery'; align-items: center; gap: .5rem; margin-top: 1rem; text-align: center; }}
+                .flow-grid {{ position: relative; aspect-ratio: 800 / 440; margin-top: 1rem; text-align: center; isolation: isolate; }}
                 .flow-node {{ padding: .8rem; min-height: 7.5rem; border-radius: 16px; background: white; border-top: 5px solid; box-shadow: 0 4px 14px rgba(29, 55, 84, .08); }} .flow-node img {{ width: 100%; height: 4.3rem; object-fit: contain; display: block; }} .flow-node p {{ margin: .1rem 0; font-size: .8rem; }} .flow-node strong {{ font-size: 1.05rem; display: block; }} .flow-node small {{ font-size: .8rem; }}
-                .flow-solar {{ grid-area: solar; border-color: #d79a00; }} .flow-home {{ grid-area: home; border-color: #3478c6; }} .flow-grid-node {{ grid-area: grid; }} .flow-grid-out {{ border-color: #1e8e5a; }} .flow-grid-in {{ border-color: #c4543a; }} .flow-battery {{ grid-area: battery; border-color: #8067c7; }}
-                .route {{ margin: 0; font-size: clamp(2.1rem, 5vw, 4rem); font-weight: 800; line-height: 1; filter: drop-shadow(0 3px 3px rgba(33, 59, 88, .22)); }} .route-solar {{ grid-area: route3; color: #e6ae18; }} .route-grid-in, .route-grid-out {{ grid-area: route2; }} .route-grid-in {{ color: #c4543a; }} .route-grid-out {{ color: #1e8e5a; }} .route-home {{ grid-area: route1; color: #3478c6; }} .route-battery {{ grid-area: route4; color: #8067c7; }} .route-idle {{ opacity: .25; }} .route-active {{ animation: energy-pulse 1.6s ease-in-out infinite; }} .route-fast {{ animation-duration: .7s; }} @keyframes energy-pulse {{ 0%, 100% {{ transform: scale(.9); opacity: .45; }} 50% {{ transform: scale(1.12); opacity: 1; }} }} .hub {{ grid-area: hub; width: 3.5rem; height: 3.5rem; margin: auto; border-radius: 50%; display: grid; place-items: center; background: #dce9f7; color: #375879; font-size: 1.5rem; box-shadow: 0 0 0 6px rgba(124, 161, 199, .18), 0 8px 18px rgba(55, 88, 121, .18); }}
+                .flow-node {{ position: absolute; z-index: 2; width: 23%; box-sizing: border-box; }} .flow-solar {{ top: 0; right: 0; border-color: #d79a00; }} .flow-home {{ top: 0; left: 0; border-color: #3478c6; }} .flow-grid-node {{ bottom: 0; left: 0; }} .flow-grid-out {{ border-color: #1e8e5a; }} .flow-grid-in {{ border-color: #c4543a; }} .flow-battery {{ right: 0; bottom: 0; border-color: #8067c7; }} .flow-line {{ position: absolute; z-index: 1; height: 5px; width: 32%; border-radius: 999px; transform-origin: left center; }} .flow-base {{ background: #c9d8e8; }} .flow-line:not(.flow-base) {{ opacity: .28; background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 17px); }} .flow-active {{ opacity: 1 !important; animation: flow-dash 1.25s linear infinite; }} .flow-fast {{ animation-duration: .55s; }} .solar-base, .solar-flow {{ left: 77%; top: 27%; transform: rotate(137deg); }} .home-base, .home-flow {{ left: 49%; top: 50%; transform: rotate(-137deg); }} .grid-base {{ left: 23%; top: 73%; transform: rotate(-43deg); }} .grid-import-flow {{ left: 23%; top: 73%; transform: rotate(-43deg); }} .grid-export-flow {{ left: 49%; top: 50%; transform: rotate(137deg); }} .battery-base {{ left: 51%; top: 50%; transform: rotate(43deg); }} .battery-charge-flow {{ left: 51%; top: 50%; transform: rotate(43deg); }} .battery-discharge-flow {{ left: 77%; top: 73%; transform: rotate(-137deg); }} .solar-flow {{ color: #e6ae18; }} .home-flow {{ color: #3478c6; }} .grid-import-flow {{ color: #c4543a; }} .grid-export-flow {{ color: #1e8e5a; }} .battery-charge-flow, .battery-discharge-flow {{ color: #8067c7; }} @keyframes flow-dash {{ to {{ background-position: -44px 0; }} }} .hub {{ position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 3.5rem; height: 3.5rem; border-radius: 50%; display: grid; place-items: center; background: #dce9f7; color: #375879; font-size: 1.5rem; box-shadow: 0 0 0 6px rgba(124, 161, 199, .18), 0 8px 18px rgba(55, 88, 121, .18); }}
                 .battery-reserve {{ margin-top: 1.25rem; }} .battery-label {{ color: #536170; font-size: .9rem; }} progress {{ width: 100%; margin-top: .35rem; accent-color: #8067c7; }}
                 .flow-key {{ margin: .85rem 0 0; color: #617084; font-size: .82rem; text-align: center; }}
                 .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .75rem; margin: 1rem 0; }} .metrics article {{ padding: 1rem; border: 1px solid #dce4ef; border-radius: 16px; background: white; }} .metrics p, .metrics small {{ margin: 0; }} .metrics h2 {{ margin: .35rem 0; }} .footer-status {{ text-align: center; }}
@@ -233,33 +228,36 @@ fn app() -> Element {
     }
 }
 
-fn route_class(power_kw: f64, route: &'static str) -> &'static str {
+fn flow_path_class(power_kw: f64, route: &'static str) -> &'static str {
     if power_kw > 3.0 {
         match route {
-            "route-solar" => "route route-solar route-active route-fast",
-            "route-home" => "route route-home route-active route-fast",
-            "route-battery" => "route route-battery route-active route-fast",
-            "route-grid-in" => "route route-grid-in route-active route-fast",
-            "route-grid-out" => "route route-grid-out route-active route-fast",
-            _ => "route route-idle",
+            "solar-flow" => "flow-line solar-flow flow-active flow-fast",
+            "home-flow" => "flow-line home-flow flow-active flow-fast",
+            "battery-charge-flow" => "flow-line battery-charge-flow flow-active flow-fast",
+            "battery-discharge-flow" => "flow-line battery-discharge-flow flow-active flow-fast",
+            "grid-import-flow" => "flow-line grid-import-flow flow-active flow-fast",
+            "grid-export-flow" => "flow-line grid-export-flow flow-active flow-fast",
+            _ => "flow-line",
         }
     } else if power_kw > 0.05 {
         match route {
-            "route-solar" => "route route-solar route-active",
-            "route-home" => "route route-home route-active",
-            "route-battery" => "route route-battery route-active",
-            "route-grid-in" => "route route-grid-in route-active",
-            "route-grid-out" => "route route-grid-out route-active",
-            _ => "route route-idle",
+            "solar-flow" => "flow-line solar-flow flow-active",
+            "home-flow" => "flow-line home-flow flow-active",
+            "battery-charge-flow" => "flow-line battery-charge-flow flow-active",
+            "battery-discharge-flow" => "flow-line battery-discharge-flow flow-active",
+            "grid-import-flow" => "flow-line grid-import-flow flow-active",
+            "grid-export-flow" => "flow-line grid-export-flow flow-active",
+            _ => "flow-line",
         }
     } else {
         match route {
-            "route-solar" => "route route-solar route-idle",
-            "route-home" => "route route-home route-idle",
-            "route-battery" => "route route-battery route-idle",
-            "route-grid-in" => "route route-grid-in route-idle",
-            "route-grid-out" => "route route-grid-out route-idle",
-            _ => "route route-idle",
+            "solar-flow" => "flow-line solar-flow",
+            "home-flow" => "flow-line home-flow",
+            "battery-charge-flow" => "flow-line battery-charge-flow",
+            "battery-discharge-flow" => "flow-line battery-discharge-flow",
+            "grid-import-flow" => "flow-line grid-import-flow",
+            "grid-export-flow" => "flow-line grid-export-flow",
+            _ => "flow-line",
         }
     }
 }
