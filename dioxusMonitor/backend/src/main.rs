@@ -149,21 +149,31 @@ async fn fetch_foxess_snapshot() -> Result<EnergySnapshot, String> {
         .as_array()
         .ok_or("FoxESS returned no telemetry values")?;
 
+    let home_kw = telemetry_value(data, "loadsPower");
+    let battery_kw = telemetry_value(data, "batPower");
+    let grid_import_kw = telemetry_value(data, "gridConsumptionPower");
+    let grid_export_kw = telemetry_value(data, "feedinPower");
+
+    // FoxESS V2's "Gen Load" is the power balancing the live system:
+    // generation + grid import + battery discharge = home + export + battery charge.
+    // The `generationPower` field is not present/reliable for this inverter, so derive
+    // the value from the fields that do match the portal's live snapshot.
+    let generation_kw =
+        (home_kw + battery_kw.max(0.0) + grid_export_kw - grid_import_kw - (-battery_kw).max(0.0))
+            .max(0.0);
+
     Ok(EnergySnapshot {
         timestamp: device["time"]
             .as_str()
             .unwrap_or("Unknown time")
             .to_string(),
 
-        // FoxESS reports generationPower as a signed value on this inverter.
-        // Both PV sources contribute to total generation, irrespective of sign.
-        solar_kw: telemetry_value(data, "pvPower").abs()
-            + telemetry_value(data, "generationPower").abs(),
-        home_kw: telemetry_value(data, "loadsPower"),
+        solar_kw: generation_kw,
+        home_kw,
         battery_soc: telemetry_value(data, "SoC"),
-        battery_kw: telemetry_value(data, "batPower"),
-        grid_import_kw: telemetry_value(data, "gridConsumptionPower"),
-        grid_export_kw: telemetry_value(data, "feedinPower"),
+        battery_kw,
+        grid_import_kw,
+        grid_export_kw,
     })
 }
 
