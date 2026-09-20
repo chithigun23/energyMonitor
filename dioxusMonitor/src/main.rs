@@ -64,7 +64,14 @@ fn app() -> Element {
             } else if data.battery_kw < -0.05 {
                 "Discharging"
             } else {
-                "Ready"
+                "Standing by"
+            };
+            let battery_rate = if data.battery_kw > 0.05 {
+                format!("{} in", format_power(data.battery_kw, ""))
+            } else if data.battery_kw < -0.05 {
+                format!("{} out", format_power(data.battery_kw.abs(), ""))
+            } else {
+                "No power flow".to_string()
             };
             let grid_state = if data.grid_export_kw > 0.05 {
                 "Exporting"
@@ -172,12 +179,16 @@ fn app() -> Element {
                             img { src: BATTERY_IMAGE, alt: "Battery" }
                             p { "Battery" }
                             strong { "{data.battery_soc:.0}%" }
-                            small { "{battery_state}" }
+                            small { "{battery_state} • {battery_rate}" }
                         }
                     }
                     div { class: "battery-reserve",
-                        div { class: "battery-label", span { "Battery reserve" } span { "{data.battery_soc:.0}%" } }
-                        progress { value: "{data.battery_soc}", max: "100" }
+                        div { class: "battery-label", span { "Battery energy" } span { "{data.battery_soc:.0}%" } }
+                        div { class: "battery-gauge", aria_label: "Battery charge: {data.battery_soc:.0}%",
+                            for segment in 1..=10 {
+                                span { class: battery_segment_class(segment, data.battery_soc) }
+                            }
+                        }
                     }
                 }
                 section { class: "metrics",
@@ -215,7 +226,7 @@ fn app() -> Element {
                 .flow-grid {{ position: relative; aspect-ratio: 800 / 440; margin-top: 1rem; text-align: center; isolation: isolate; }}
                 .flow-node {{ padding: .8rem; min-height: 7.5rem; border-radius: 16px; background: white; border-top: 5px solid; box-shadow: 0 4px 14px rgba(29, 55, 84, .08); }} .flow-node img {{ width: 100%; height: 4.3rem; object-fit: contain; display: block; }} .flow-node p {{ margin: .1rem 0; font-size: .8rem; }} .flow-node strong {{ font-size: 1.05rem; display: block; }} .flow-node small {{ font-size: .8rem; }}
                 .flow-node {{ position: absolute; z-index: 2; width: 23%; box-sizing: border-box; }} .flow-solar {{ top: 0; right: 0; border-color: #d79a00; }} .flow-home {{ top: 0; left: 0; border-color: #3478c6; }} .flow-grid-node {{ bottom: 0; left: 0; }} .flow-grid-out {{ border-color: #1e8e5a; }} .flow-grid-in {{ border-color: #c4543a; }} .flow-battery {{ right: 0; bottom: 0; border-color: #8067c7; }} .flow-line {{ position: absolute; z-index: 1; height: 4px; width: 29%; border-radius: 999px; transform-origin: left center; }} .flow-base {{ background: #c9d8e8; }} .flow-line:not(.flow-base) {{ opacity: .28; background: currentColor; }} .flow-line:not(.flow-base)::after {{ content: \"\"; position: absolute; top: 50%; left: -7px; width: 12px; height: 12px; border-radius: 50%; background: currentColor; transform: translateY(-50%); opacity: 0; box-shadow: 0 0 10px currentColor; }} .flow-active {{ opacity: .55 !important; }} .flow-active::after {{ opacity: 1 !important; animation: energy-particle 1.25s linear infinite; }} .flow-fast::after {{ animation-duration: .55s; }} .solar-base, .solar-flow {{ left: 77%; top: 27%; transform: rotate(155deg); }} .home-base, .home-flow {{ left: 49%; top: 50%; transform: rotate(-155deg); }} .grid-base {{ left: 23%; top: 73%; transform: rotate(-25deg); }} .grid-import-flow {{ left: 23%; top: 73%; transform: rotate(-25deg); }} .grid-export-flow {{ left: 49%; top: 50%; transform: rotate(155deg); }} .battery-base {{ left: 51%; top: 50%; transform: rotate(25deg); }} .battery-charge-flow {{ left: 51%; top: 50%; transform: rotate(25deg); }} .battery-discharge-flow {{ left: 77%; top: 73%; transform: rotate(-155deg); }} .solar-flow {{ color: #e6ae18; }} .home-flow {{ color: #3478c6; }} .grid-import-flow {{ color: #c4543a; }} .grid-export-flow {{ color: #1e8e5a; }} .battery-charge-flow, .battery-discharge-flow {{ color: #8067c7; }} @keyframes energy-particle {{ from {{ left: -7px; }} to {{ left: calc(100% - 5px); }} }} .hub {{ position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 3.5rem; height: 3.5rem; border-radius: 50%; display: grid; place-items: center; background: #dce9f7; color: #375879; font-size: 1.5rem; box-shadow: 0 0 0 6px rgba(124, 161, 199, .18), 0 8px 18px rgba(55, 88, 121, .18); }}
-                .battery-reserve {{ margin-top: 1.25rem; }} .battery-label {{ color: #536170; font-size: .9rem; }} progress {{ width: 100%; margin-top: .35rem; accent-color: #8067c7; }}
+                .battery-reserve {{ margin-top: 1.25rem; }} .battery-label {{ color: #536170; font-size: .9rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }} .battery-gauge {{ margin-top: .45rem; display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 5px; border: 2px solid #263a57; border-radius: 7px; background: #172841; box-shadow: inset 0 0 0 2px #0d1828, 0 3px 0 rgba(19, 34, 56, .2); }} .battery-gauge span {{ height: 14px; border-radius: 2px; background: #30445e; box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }} .battery-gauge .charged {{ background: linear-gradient(180deg, #b99aff, #7858c2); box-shadow: 0 0 7px rgba(157, 119, 255, .72), inset 0 1px 0 rgba(255,255,255,.38); }} .battery-gauge .low {{ background: linear-gradient(180deg, #ffbf75, #d66a42); box-shadow: 0 0 7px rgba(255, 134, 76, .58); }}
                 .flow-key {{ margin: .85rem 0 0; color: #617084; font-size: .82rem; text-align: center; }}
                 .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .75rem; margin: 1rem 0; }} .metrics article {{ padding: 1rem; border: 1px solid #dce4ef; border-radius: 16px; background: white; }} .metrics p, .metrics small {{ margin: 0; }} .metrics h2 {{ margin: .35rem 0; }} .footer-status {{ text-align: center; }}
                 .connecting {{ margin-top: 2rem; padding: 2rem; border-radius: 20px; background: #fff7e5; }}
@@ -238,6 +249,14 @@ fn format_power(power_kw: f64, direction: &str) -> String {
         value
     } else {
         format!("{value} {direction}")
+    }
+}
+
+fn battery_segment_class(segment: i32, battery_soc: f64) -> &'static str {
+    if battery_soc >= f64::from(segment * 10) {
+        if battery_soc < 30.0 { "low" } else { "charged" }
+    } else {
+        "empty"
     }
 }
 
