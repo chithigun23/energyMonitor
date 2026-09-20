@@ -155,7 +155,10 @@ async fn fetch_foxess_snapshot() -> Result<EnergySnapshot, String> {
             .unwrap_or("Unknown time")
             .to_string(),
 
-        solar_kw: telemetry_value(data, "pvPower") + telemetry_value(data, "generationPower"),
+        // FoxESS reports generationPower as a signed value on this inverter.
+        // Both PV sources contribute to total generation, irrespective of sign.
+        solar_kw: telemetry_value(data, "pvPower").abs()
+            + telemetry_value(data, "generationPower").abs(),
         home_kw: telemetry_value(data, "loadsPower"),
         battery_soc: telemetry_value(data, "SoC"),
         battery_kw: telemetry_value(data, "batPower"),
